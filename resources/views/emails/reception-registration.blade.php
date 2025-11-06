@@ -198,7 +198,7 @@
                 <p>Please report to the Front Office Manager on your first day for orientation and training.</p>
                 <p>📞 Front Office: +91 8778636729<br>
                    📧 Email: mn1019088@gmail.com<br>
-                   🏥 Address: MTH Road, Tidel Park 3, Pattabiram, Chennai, Tamil Nadu, 600072.</p>
+                   🏥 Address: CTH Road, Tidel Park 3, Pattabiram, Chennai, Tamil Nadu, 600072.</p>
             </div>
 
             <p>We're confident that your skills and positive attitude will greatly benefit our patients and the entire hospital team.</p>

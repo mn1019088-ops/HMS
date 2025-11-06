@@ -200,7 +200,7 @@
                 <p>Please visit the System Administrator to complete your onboarding process and receive your hospital access credentials.</p>
                 <p>📞 System Administrator: +91 8778636729<br>
                    📧 Email: mn1091088@gmail.com<br>
-                   🏥 Address: MTH Road, Tidel Park 3, Pattabiram, Chennai, Tamil Nadu, 600072.</p>
+                   🏥 Address: CTH Road, Tidel Park 3, Pattabiram, Chennai, Tamil Nadu, 600072.</p>
             </div>
 
             <p>We look forward to working with you and achieving great success together in providing quality healthcare.</p>

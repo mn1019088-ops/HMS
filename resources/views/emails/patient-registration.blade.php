@@ -197,7 +197,7 @@
                 <p>If you have any questions or need assistance, please don't hesitate to contact us:</p>
                 <p>📞 Phone: +91 8778636729<br>
                    📧 Email: manjunathan04@gmail.com<br>
-                   🏥 Address: MTH Road, Tidel Park 3, Pattabiram, Chennai, Tamil Nadu, 600072.</p>
+                   🏥 Address: CTH Road, Tidel Park 3, Pattabiram, Chennai, Tamil Nadu, 600072.</p>
             </div>
 
             <p>We're committed to providing you with the best healthcare experience. Thank you for choosing MediCare Hospital!</p>
