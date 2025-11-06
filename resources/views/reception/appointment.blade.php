@@ -660,5 +660,7 @@
             new bootstrap.Collapse(filterCollapse, { show: true });
         }
     });
+
+    
 </script>
 @endsection
