@@ -354,6 +354,7 @@
                         No rooms have been added yet.
                     @endif
                 </p>
+                
                 <a href="{{ route('reception.rooms.create') }}" class="btn btn-primary">
                     <i class="fas fa-plus me-1"></i>Add New Room
                 </a>
