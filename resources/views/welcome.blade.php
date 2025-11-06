@@ -522,7 +522,7 @@
         <div class="footer-links">
           <h4>Contact Us</h4>
           <ul class="footer-contact">
-            <li><i class="fas fa-map-marker-alt"></i>MTH Road, Tidel Park 3, Pattabiram, Chennai, Tamil Nadu, 600072.</li>
+            <li><i class="fas fa-map-marker-alt"></i>CTH Road, Tidel Park 3, Pattabiram, Chennai, Tamil Nadu, 600072.</li>
             <li><i class="fas fa-phone"></i>+91 8778636729</li>
             <li><i class="fas fa-envelope"></i>manjunathan04@gmail.com</li>
             <li><i class="fas fa-clock"></i>Mon - Fri: 9:30 AM - 6:30 PM</li>
