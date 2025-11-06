@@ -545,7 +545,9 @@
         }
 
 
+
         
+
         // Add loading state to filter button
         const filterForm = document.querySelector('form');
         const filterButton = filterForm.querySelector('button[type="submit"]');
