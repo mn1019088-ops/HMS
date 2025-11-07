@@ -14,6 +14,36 @@
         </div>
     </div>
 
+    <!-- Success/Error Messages -->
+    @if(session('success'))
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+            <i class="fas fa-check-circle me-2"></i>
+            {{ session('success') }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    @endif
+
+    @if(session('error'))
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            <i class="fas fa-exclamation-circle me-2"></i>
+            {{ session('error') }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    @endif
+
+    @if ($errors->any())
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            <i class="fas fa-exclamation-triangle me-2"></i>
+            <strong>Please fix the following errors:</strong>
+            <ul class="mb-0 mt-1">
+                @foreach ($errors->all() as $error)
+                    <li>{{ $error }}</li>
+                @endforeach
+            </ul>
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    @endif
+
     <!-- Statistics Cards -->
     <div class="row mb-4">
         <div class="col-xl-2 col-md-4 mb-3">
@@ -217,6 +247,7 @@
                             <th>Date & Time</th>
                             <th>Type</th>
                             <th>Reason</th>
+                            <th>Fee</th>
                             <th>Status</th>
                             <th>Actions</th>
                         </tr>
@@ -263,6 +294,15 @@
                                     <span data-bs-toggle="tooltip" title="{{ $appointment->reason }}">
                                         {{ \Illuminate\Support\Str::limit($appointment->reason, 30) }}
                                     </span>
+                                </td>
+                                <td>
+                                    @if($appointment->fee)
+                                        <span class="text-success fw-bold">
+                                            ₹{{ number_format($appointment->fee, 2) }}
+                                        </span>
+                                    @else
+                                        <span class="text-muted">-</span>
+                                    @endif
                                 </td>
                                 <td>
                                     @php
@@ -323,12 +363,18 @@
                                             <i class="fas fa-eye"></i>
                                         </button>
 
-                                        <!-- Edit Button -->
-                                        <a href="{{ route('doctor.appointments.edit', $appointment->id) }}" 
-                                           class="btn btn-sm btn-warning" 
-                                           title="Edit Appointment">
-                                            <i class="fas fa-edit"></i>
-                                        </a>
+                                        <!-- Edit Button - Opens Edit Modal -->
+                                        @if(in_array($appointment->status, ['scheduled', 'confirmed', 'in-progress']))
+                                            <button class="btn btn-sm btn-warning" data-bs-toggle="modal"
+                                                    data-bs-target="#editAppointmentModal{{ $appointment->id }}" 
+                                                    title="Edit Appointment">
+                                                <i class="fas fa-edit"></i>
+                                            </button>
+                                        @else
+                                            <button class="btn btn-sm btn-warning" disabled title="Cannot edit completed or cancelled appointments">
+                                                <i class="fas fa-edit"></i>
+                                            </button>
+                                        @endif
 
                                         <!-- Cancel Button -->
                                         @if(in_array($appointment->status, ['scheduled', 'confirmed']))
@@ -418,7 +464,9 @@
                                                     @if($appointment->fee)
                                                     <div class="mb-3">
                                                         <strong>Fee:</strong><br>
-                                                        ${{ number_format($appointment->fee, 2) }}
+                                                        <span class="text-success fw-bold fs-5">
+                                                            ₹{{ number_format($appointment->fee, 2) }}
+                                                        </span>
                                                     </div>
                                                     @endif
                                                 </div>
@@ -456,7 +504,233 @@
                                                 </button>
                                             </form>
                                             @endif
+                                            @if(in_array($appointment->status, ['scheduled', 'confirmed', 'in-progress']))
+                                            <button class="btn btn-warning" data-bs-toggle="modal"
+                                                    data-bs-target="#editAppointmentModal{{ $appointment->id }}" 
+                                                    data-bs-dismiss="modal">
+                                                <i class="fas fa-edit me-1"></i>Edit
+                                            </button>
+                                            @endif
                                         </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Edit Appointment Modal -->
+                            <div class="modal fade" id="editAppointmentModal{{ $appointment->id }}" tabindex="-1"
+                                 aria-labelledby="editAppointmentModalLabel{{ $appointment->id }}" aria-hidden="true">
+                                <div class="modal-dialog modal-lg">
+                                    <div class="modal-content border-light shadow-sm">
+                                        <div class="modal-header bg-warning text-dark">
+                                            <h5 class="modal-title" id="editAppointmentModalLabel{{ $appointment->id }}">
+                                                <i class="fas fa-edit me-2"></i>Edit Appointment
+                                            </h5>
+                                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                        </div>
+                                        <form action="{{ route('doctor.appointments.update', $appointment->id) }}" method="POST">
+                                            @csrf
+                                            @method('PUT')
+                                            <div class="modal-body">
+                                                <div class="row">
+                                                    <div class="col-md-6">
+                                                        <h6 class="text-warning mb-3">
+                                                            <i class="fas fa-user me-2"></i>Patient Information
+                                                        </h6>
+                                                        <div class="mb-3">
+                                                            <strong>Patient:</strong><br>
+                                                            {{ $appointment->patient->first_name }} {{ $appointment->patient->last_name }}
+                                                            (ID: {{ $appointment->patient->patient_id }})
+                                                        </div>
+                                                    </div>
+                                                    <div class="col-md-6">
+                                                        <h6 class="text-warning mb-3">
+                                                            <i class="fas fa-calendar me-2"></i>Appointment Details
+                                                        </h6>
+                                                        <div class="mb-3">
+                                                            <strong>Appointment ID:</strong><br>
+                                                            {{ $appointment->appointment_id }}
+                                                        </div>
+                                                        <div class="mb-3">
+                                                            <strong>Current Doctor:</strong><br>
+                                                            {{ $appointment->doctor->user->first_name ?? auth()->user()->first_name }} {{ $appointment->doctor->user->last_name ?? auth()->user()->last_name }}
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <hr>
+                                                
+                                                <!-- Hidden Doctor ID Field - Fixed -->
+                                                @php
+                                                    $currentDoctorId = $appointment->doctor_id ?? auth()->id();
+                                                @endphp
+                                                <input type="hidden" name="doctor_id" value="{{ $currentDoctorId }}">
+                                                
+                                                <!-- Editable Fields -->
+                                                <div class="row">
+                                                    <div class="col-md-6">
+                                                        <div class="mb-3">
+                                                            <label for="appointment_date{{ $appointment->id }}" class="form-label">
+                                                                <strong>Appointment Date *</strong>
+                                                            </label>
+                                                            <input type="date" 
+                                                                   class="form-control @error('appointment_date') is-invalid @enderror" 
+                                                                   id="appointment_date{{ $appointment->id }}" 
+                                                                   name="appointment_date" 
+                                                                   value="{{ old('appointment_date', $appointment->appointment_date->format('Y-m-d')) }}"
+                                                                   required
+                                                                   min="{{ \Carbon\Carbon::today()->format('Y-m-d') }}">
+                                                            @error('appointment_date')
+                                                                <div class="invalid-feedback">{{ $message }}</div>
+                                                            @enderror
+                                                        </div>
+                                                    </div>
+                                                    <div class="col-md-6">
+                                                        <div class="mb-3">
+                                                            <label for="appointment_time{{ $appointment->id }}" class="form-label">
+                                                                <strong>Appointment Time *</strong>
+                                                            </label>
+                                                            <input type="time" 
+                                                                   class="form-control @error('appointment_time') is-invalid @enderror" 
+                                                                   id="appointment_time{{ $appointment->id }}" 
+                                                                   name="appointment_time" 
+                                                                   value="{{ old('appointment_time', \Carbon\Carbon::parse($appointment->appointment_time)->format('H:i')) }}"
+                                                                   required>
+                                                            @error('appointment_time')
+                                                                <div class="invalid-feedback">{{ $message }}</div>
+                                                            @enderror
+                                                        </div>
+                                                    </div>
+                                                </div>
+
+                                                <div class="row">
+                                                    <div class="col-md-6">
+                                                        <div class="mb-3">
+                                                            <label for="appointment_type{{ $appointment->id }}" class="form-label">
+                                                                <strong>Appointment Type *</strong>
+                                                            </label>
+                                                            <select class="form-select @error('appointment_type') is-invalid @enderror" 
+                                                                    id="appointment_type{{ $appointment->id }}" 
+                                                                    name="appointment_type" required>
+                                                                <option value="">Select Type</option>
+                                                                <option value="consultation" {{ old('appointment_type', $appointment->appointment_type) == 'consultation' ? 'selected' : '' }}>Consultation</option>
+                                                                <option value="checkup" {{ old('appointment_type', $appointment->appointment_type) == 'checkup' ? 'selected' : '' }}>Checkup</option>
+                                                                <option value="followup" {{ old('appointment_type', $appointment->appointment_type) == 'followup' ? 'selected' : '' }}>Follow-up</option>
+                                                                <option value="emergency" {{ old('appointment_type', $appointment->appointment_type) == 'emergency' ? 'selected' : '' }}>Emergency</option>
+                                                                <option value="surgery" {{ old('appointment_type', $appointment->appointment_type) == 'surgery' ? 'selected' : '' }}>Surgery</option>
+                                                                <option value="therapy" {{ old('appointment_type', $appointment->appointment_type) == 'therapy' ? 'selected' : '' }}>Therapy</option>
+                                                            </select>
+                                                            @error('appointment_type')
+                                                                <div class="invalid-feedback">{{ $message }}</div>
+                                                            @enderror
+                                                        </div>
+                                                    </div>
+                                                    <div class="col-md-6">
+                                                        <div class="mb-3">
+                                                            <label for="status{{ $appointment->id }}" class="form-label">
+                                                                <strong>Status *</strong>
+                                                            </label>
+                                                            <select class="form-select @error('status') is-invalid @enderror" 
+                                                                    id="status{{ $appointment->id }}" 
+                                                                    name="status" required>
+                                                                <option value="scheduled" {{ old('status', $appointment->status) == 'scheduled' ? 'selected' : '' }}>Scheduled</option>
+                                                                <option value="confirmed" {{ old('status', $appointment->status) == 'confirmed' ? 'selected' : '' }}>Confirmed</option>
+                                                                <option value="in-progress" {{ old('status', $appointment->status) == 'in-progress' ? 'selected' : '' }}>In Progress</option>
+                                                            </select>
+                                                            @error('status')
+                                                                <div class="invalid-feedback">{{ $message }}</div>
+                                                            @enderror
+                                                        </div>
+                                                    </div>
+                                                </div>
+
+                                                <div class="row">
+                                                    <div class="col-md-6">
+                                                        <div class="mb-3">
+                                                            <label for="fee{{ $appointment->id }}" class="form-label">
+                                                                <strong>Fee (₹) *</strong>
+                                                            </label>
+                                                            <div class="input-group">
+                                                                <span class="input-group-text bg-light">₹</span>
+                                                                <input type="number" 
+                                                                       class="form-control @error('fee') is-invalid @enderror" 
+                                                                       id="fee{{ $appointment->id }}" 
+                                                                       name="fee" 
+                                                                       value="{{ old('fee', $appointment->fee) }}"
+                                                                       step="0.01"
+                                                                       min="0"
+                                                                       placeholder="0.00"
+                                                                       required>
+                                                                @error('fee')
+                                                                    <div class="invalid-feedback">{{ $message }}</div>
+                                                                @enderror
+                                                            </div>
+                                                            <small class="text-muted">Enter fee in Indian Rupees</small>
+                                                        </div>
+                                                    </div>
+                                                    <div class="col-md-6">
+                                                        <div class="mb-3">
+                                                            <label class="form-label d-block">&nbsp;</label>
+                                                            <div class="card bg-light">
+                                                                <div class="card-body py-2">
+                                                                    <small class="text-muted">
+                                                                        <i class="fas fa-info-circle me-1"></i>
+                                                                        <strong>Suggested Fees:</strong><br>
+                                                                        Consultation: ₹500-₹1000<br>
+                                                                        Checkup: ₹300-₹700<br>
+                                                                        Follow-up: ₹200-₹500<br>
+                                                                        Emergency: ₹1000-₹5000
+                                                                    </small>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+
+                                                <div class="row">
+                                                    <div class="col-12">
+                                                        <div class="mb-3">
+                                                            <label for="reason{{ $appointment->id }}" class="form-label">
+                                                                <strong>Reason for Visit *</strong>
+                                                            </label>
+                                                            <textarea class="form-control @error('reason') is-invalid @enderror" 
+                                                                      id="reason{{ $appointment->id }}" 
+                                                                      name="reason" 
+                                                                      rows="3" 
+                                                                      required
+                                                                      placeholder="Describe the reason for the appointment...">{{ old('reason', $appointment->reason) }}</textarea>
+                                                            @error('reason')
+                                                                <div class="invalid-feedback">{{ $message }}</div>
+                                                            @enderror
+                                                        </div>
+                                                    </div>
+                                                </div>
+
+                                                <div class="row">
+                                                    <div class="col-12">
+                                                        <div class="mb-3">
+                                                            <label for="notes{{ $appointment->id }}" class="form-label">
+                                                                <strong>Additional Notes</strong>
+                                                            </label>
+                                                            <textarea class="form-control @error('notes') is-invalid @enderror" 
+                                                                      id="notes{{ $appointment->id }}" 
+                                                                      name="notes" 
+                                                                      rows="3" 
+                                                                      placeholder="Any additional notes or comments...">{{ old('notes', $appointment->notes) }}</textarea>
+                                                            @error('notes')
+                                                                <div class="invalid-feedback">{{ $message }}</div>
+                                                            @enderror
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div class="modal-footer">
+                                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                                                    <i class="fas fa-times me-1"></i>Cancel
+                                                </button>
+                                                <button type="submit" class="btn btn-warning">
+                                                    <i class="fas fa-save me-1"></i>Update Appointment
+                                                </button>
+                                            </div>
+                                        </form>
                                     </div>
                                 </div>
                             </div>
@@ -496,6 +770,11 @@
         height: 40px;
         object-fit: cover;
     }
+    .avatar-placeholder {
+        width: 40px;
+        height: 40px;
+        font-size: 14px;
+    }
     .card {
         box-shadow: 0 0.15rem 1.75rem 0 rgba(58, 59, 69, 0.15);
     }
@@ -516,6 +795,19 @@
     }
     .border-left-secondary {
         border-left: 0.25rem solid #858796 !important;
+    }
+    .btn-group .btn {
+        margin-right: 2px;
+    }
+    .btn-group .btn:last-child {
+        margin-right: 0;
+    }
+    .modal-header.bg-warning {
+        background: linear-gradient(45deg, #f6c23e, #f8d56c) !important;
+    }
+    .input-group-text {
+        background-color: #f8f9fa;
+        border: 1px solid #ced4da;
     }
 </style>
 @endsection
@@ -580,6 +872,45 @@
                 }
             });
         });
+
+        // Set minimum date for appointment date fields
+        const appointmentDateFields = document.querySelectorAll('input[name="appointment_date"]');
+        appointmentDateFields.forEach(field => {
+            const today = new Date();
+            field.min = today.toISOString().split('T')[0];
+            
+            // Set max date to one year from now
+            const oneYearLater = new Date(today.getFullYear() + 1, today.getMonth(), today.getDate());
+            field.max = oneYearLater.toISOString().split('T')[0];
+        });
+
+        // Fee field formatting
+        const feeFields = document.querySelectorAll('input[name="fee"]');
+        feeFields.forEach(field => {
+            field.addEventListener('input', function(e) {
+                // Ensure only numbers and decimal points
+                this.value = this.value.replace(/[^0-9.]/g, '');
+                
+                // Ensure only one decimal point
+                const decimalCount = (this.value.match(/\./g) || []).length;
+                if (decimalCount > 1) {
+                    this.value = this.value.slice(0, -1);
+                }
+                
+                // Limit to 2 decimal places
+                if (this.value.includes('.')) {
+                    const parts = this.value.split('.');
+                    if (parts[1].length > 2) {
+                        this.value = parts[0] + '.' + parts[1].substring(0, 2);
+                    }
+                }
+            });
+        });
+
+        // Check if there are any success/error messages and scroll to top
+        @if(session('success') || session('error') || $errors->any())
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        @endif
     });
 </script>
 @endsection

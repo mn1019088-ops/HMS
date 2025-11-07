@@ -663,7 +663,7 @@
                                     <label class="form-label">Employee ID <span class="text-danger">*</span></label>
                                     <i class="fas fa-id-badge input-icon"></i>
                                     <input type="text" class="form-control" name="employee_id" id="employee_id"
-                                           placeholder="EMP12345" value="{{ old('employee_id') }}">
+                                           placeholder="EMP001" value="{{ old('employee_id') }}">
                                 </div>
                             </div>
                         </div>
@@ -744,7 +744,7 @@
                                     <label class="form-label">Medical History</label>
                                     <i class="fas fa-file-medical input-icon"></i>
                                     <textarea class="form-control" name="medical_history" id="medical_history" 
-                                              rows="2" placeholder="Any previous medical conditions">{{ old('medical_history') }}</textarea>
+                                            rows="2" placeholder="Any previous medical conditions">{{ old('medical_history') }}</textarea>
                                 </div>
                             </div>
                             <div class="col-md-6">
@@ -752,7 +752,7 @@
                                     <label class="form-label">Allergies</label>
                                     <i class="fas fa-allergies input-icon"></i>
                                     <textarea class="form-control" name="allergies" id="allergies" 
-                                              rows="2" placeholder="Any known allergies">{{ old('allergies') }}</textarea>
+                                            rows="2" placeholder="Any known allergies">{{ old('allergies') }}</textarea>
                                 </div>
                             </div>
                         </div>

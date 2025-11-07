@@ -36,8 +36,14 @@
                                     @foreach($doctors as $doctor)
                                     <option value="{{ $doctor->id }}" 
                                         {{ old('doctor_id') == $doctor->id ? 'selected' : '' }}
-                                        data-specialization="{{ $doctor->specialization }}">
-                                        Dr. {{ $doctor->name }} - {{ $doctor->specialization }}
+                                        data-specialization="{{ $doctor->specialization ?? 'General' }}">
+                                        @if(isset($doctor->user))
+                                            Dr. {{ $doctor->user->first_name ?? '' }} {{ $doctor->user->last_name ?? '' }} - {{ $doctor->specialization ?? 'General' }}
+                                        @elseif(isset($doctor->name))
+                                            Dr. {{ $doctor->name }} - {{ $doctor->specialization ?? 'General' }}
+                                        @else
+                                            Doctor ID: {{ $doctor->id }}
+                                        @endif
                                     </option>
                                     @endforeach
                                 </select>
@@ -59,15 +65,29 @@
 
                             <div class="col-md-6">
                                 <label for="appointment_time" class="form-label">Appointment Time *</label>
-                                <input type="time" class="form-control @error('appointment_time') is-invalid @enderror" 
-                                       name="appointment_time" id="appointment_time" 
-                                       value="{{ old('appointment_time') }}" required>
+                                <select class="form-select @error('appointment_time') is-invalid @enderror" 
+                                       name="appointment_time" id="appointment_time" required>
+                                    <option value="">Select Time</option>
+                                    @php
+                                        $timeSlots = [
+                                            '09:00', '09:30', '10:00', '10:30', '11:00', '11:30',
+                                            '12:00', '12:30', '14:00', '14:30', '15:00', '15:30',
+                                            '16:00', '16:30', '17:00'
+                                        ];
+                                        $currentTime = old('appointment_time');
+                                    @endphp
+                                    @foreach($timeSlots as $time)
+                                        <option value="{{ $time }}" {{ $currentTime == $time ? 'selected' : '' }}>
+                                            {{ \Carbon\Carbon::parse($time)->format('h:i A') }}
+                                        </option>
+                                    @endforeach
+                                </select>
                                 @error('appointment_time')
                                     <div class="invalid-feedback">{{ $message }}</div>
                                 @enderror
                             </div>
 
-                            <!-- FIXED: Appointment Type Field -->
+                            <!-- Fixed Appointment Type Field -->
                             <div class="col-md-6">
                                 <label for="appointment_type" class="form-label">Appointment Type *</label>
                                 <select class="form-select @error('appointment_type') is-invalid @enderror" 
@@ -79,7 +99,7 @@
                                     <option value="checkup" {{ old('appointment_type') == 'checkup' ? 'selected' : '' }}>
                                         Checkup
                                     </option>
-                                    <option value="follow-up" {{ old('appointment_type') == 'follow-up' ? 'selected' : '' }}>
+                                    <option value="followup" {{ old('appointment_type') == 'followup' ? 'selected' : '' }}>
                                         Follow-up
                                     </option>
                                     <option value="emergency" {{ old('appointment_type') == 'emergency' ? 'selected' : '' }}>
@@ -154,9 +174,6 @@
                         $patient = Auth::guard('patient')->user();
                     @endphp
                     <div class="d-flex align-items-center mb-3">
-                        <!-- <div class="avatar-placeholder bg-primary rounded-circle me-3">
-                            <i class="fas fa-user text-white"></i>
-                        </div> -->
                         <div>
                             <div class="fw-bold">{{ $patient->first_name }} {{ $patient->last_name }}</div>
                             <small class="text-muted">Patient ID: {{ $patient->patient_id }}</small>
@@ -171,6 +188,16 @@
                         <div class="list-group-item px-0">
                             <small class="text-muted">Phone</small>
                             <div>{{ $patient->phone ?? 'Not provided' }}</div>
+                        </div>
+                        <div class="list-group-item px-0">
+                            <small class="text-muted">Age</small>
+                            <div>
+                                @if($patient->date_of_birth)
+                                    {{ \Carbon\Carbon::parse($patient->date_of_birth)->age }} years
+                                @else
+                                    Not provided
+                                @endif
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -199,6 +226,37 @@
                             <small class="text-primary fw-bold">Emergency</small>
                             <div class="small text-muted">Urgent medical attention required</div>
                         </div>
+                        <div class="list-group-item px-0">
+                            <small class="text-primary fw-bold">Routine Checkup</small>
+                            <div class="small text-muted">Regular health checkup</div>
+                        </div>
+                        <div class="list-group-item px-0">
+                            <small class="text-primary fw-bold">Specialist Visit</small>
+                            <div class="small text-muted">Visit to a medical specialist</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Important Notes -->
+            <div class="card mt-4">
+                <div class="card-header bg-light">
+                    <h6 class="card-title mb-0">
+                        <i class="fas fa-info-circle me-2"></i>Important Information
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-info">
+                        <small>
+                            <strong>Please Note:</strong>
+                            <ul class="mb-0 mt-2">
+                                <li>Appointments must be booked at least 24 hours in advance</li>
+                                <li>Emergency appointments have different time restrictions</li>
+                                <li>Weekend appointments available for emergencies only</li>
+                                <li>You will receive a confirmation email after booking</li>
+                                <li>Please arrive 15 minutes before your appointment time</li>
+                            </ul>
+                        </small>
                     </div>
                 </div>
             </div>
@@ -207,13 +265,6 @@
 </div>
 
 <style>
-    .avatar-placeholder {
-        width: 50px;
-        height: 50px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-    }
     .list-group-item {
         border: none;
         padding: 0.5rem 0;
@@ -255,6 +306,9 @@
     #availabilityCard {
         border-left: 4px solid #0dcaf0;
     }
+    .card {
+        box-shadow: 0 0.15rem 1.75rem 0 rgba(58, 59, 69, 0.15);
+    }
 </style>
 @endsection
 
@@ -267,10 +321,15 @@
         const minDate = tomorrow.toISOString().split('T')[0];
         document.getElementById('appointment_date').min = minDate;
 
+        // Set maximum date to 3 months from now
+        const maxDate = new Date();
+        maxDate.setMonth(maxDate.getMonth() + 3);
+        document.getElementById('appointment_date').max = maxDate.toISOString().split('T')[0];
+
         // Elements
         const doctorSelect = document.getElementById('doctor_id');
         const dateInput = document.getElementById('appointment_date');
-        const timeInput = document.getElementById('appointment_time');
+        const timeSelect = document.getElementById('appointment_time');
         const appointmentTypeSelect = document.getElementById('appointment_type');
         const availabilityCard = document.getElementById('availabilityCard');
         const availabilityText = document.getElementById('availabilityText');
@@ -321,7 +380,7 @@
         function validateAppointmentType() {
             const appointmentType = appointmentTypeSelect.value;
             const appointmentDate = dateInput.value;
-            const appointmentTime = timeInput.value;
+            const appointmentTime = timeSelect.value;
             
             if (appointmentType === 'emergency') {
                 // For emergency appointments, allow same-day booking
@@ -335,7 +394,7 @@
                     
                     if (selectedTime < twoHoursFromNow) {
                         showToast('For emergency appointments, please select a time at least 2 hours from now.', 'warning');
-                        timeInput.value = '';
+                        timeSelect.value = '';
                         return false;
                     }
                 }
@@ -348,7 +407,7 @@
         function checkDoctorAvailability() {
             const doctorId = doctorSelect.value;
             const appointmentDate = dateInput.value;
-            const appointmentTime = timeInput.value;
+            const appointmentTime = timeSelect.value;
             const appointmentType = appointmentTypeSelect.value;
 
             // Clear previous timeout
@@ -408,10 +467,50 @@
             }
         }
 
+        // Update time slots based on appointment type
+        function updateTimeSlots(isEmergency) {
+            const currentTime = timeSelect.value;
+            timeSelect.innerHTML = '<option value="">Select Time</option>';
+            
+            let timeSlots;
+            
+            if (isEmergency) {
+                // Emergency time slots (extended hours)
+                timeSlots = [
+                    '08:00', '08:30', '09:00', '09:30', '10:00', '10:30', '11:00', '11:30',
+                    '12:00', '12:30', '13:00', '13:30', '14:00', '14:30', '15:00', '15:30',
+                    '16:00', '16:30', '17:00', '17:30', '18:00', '18:30', '19:00'
+                ];
+            } else {
+                // Regular time slots (business hours)
+                timeSlots = [
+                    '09:00', '09:30', '10:00', '10:30', '11:00', '11:30',
+                    '12:00', '12:30', '14:00', '14:30', '15:00', '15:30',
+                    '16:00', '16:30', '17:00'
+                ];
+            }
+            
+            timeSlots.forEach(time => {
+                const option = document.createElement('option');
+                option.value = time;
+                option.textContent = new Date('2000-01-01T' + time).toLocaleTimeString('en-US', { 
+                    hour: 'numeric', 
+                    minute: '2-digit', 
+                    hour12: true 
+                });
+                
+                if (time === currentTime) {
+                    option.selected = true;
+                }
+                
+                timeSelect.appendChild(option);
+            });
+        }
+
         // Event listeners for availability check
         doctorSelect.addEventListener('change', checkDoctorAvailability);
         dateInput.addEventListener('change', checkDoctorAvailability);
-        timeInput.addEventListener('input', checkDoctorAvailability);
+        timeSelect.addEventListener('change', checkDoctorAvailability);
         appointmentTypeSelect.addEventListener('change', checkDoctorAvailability);
 
         // Appointment type specific validations
@@ -423,6 +522,9 @@
                 const today = new Date().toISOString().split('T')[0];
                 dateInput.min = today;
                 
+                // Show emergency time slots
+                updateTimeSlots(true);
+                
                 // Show emergency warning
                 showToast('Emergency appointments are prioritized. Additional fees may apply.', 'warning');
             } else {
@@ -430,6 +532,9 @@
                 const tomorrow = new Date();
                 tomorrow.setDate(tomorrow.getDate() + 1);
                 dateInput.min = tomorrow.toISOString().split('T')[0];
+                
+                // Show regular time slots
+                updateTimeSlots(false);
             }
             
             checkDoctorAvailability();
@@ -453,43 +558,12 @@
             checkDoctorAvailability();
         });
 
-        // Set business hours (9 AM to 5 PM) with exceptions for emergencies
-        timeInput.addEventListener('change', function() {
-            const time = this.value;
-            const appointmentType = appointmentTypeSelect.value;
-            
-            if (time) {
-                const [hours, minutes] = time.split(':').map(Number);
-                
-                // Extended hours for emergency appointments
-                if (appointmentType === 'emergency') {
-                    if (hours < 8 || hours > 20) {
-                        showToast('For emergency appointments, please select a time between 8:00 AM and 8:00 PM', 'warning');
-                        this.value = '';
-                        availabilityCard.style.display = 'none';
-                        return;
-                    }
-                } else {
-                    // Regular business hours for other appointments
-                    if (hours < 9 || hours > 17 || (hours === 17 && minutes > 0)) {
-                        showToast('Please select a time between 9:00 AM and 5:00 PM', 'warning');
-                        this.value = '';
-                        availabilityCard.style.display = 'none';
-                        return;
-                    }
-                }
-            }
-            
-            validateAppointmentType();
-            checkDoctorAvailability();
-        });
-
         // Enhanced form validation
         form.addEventListener('submit', function(e) {
             e.preventDefault();
             
             const appointmentDate = dateInput.value;
-            const appointmentTime = timeInput.value;
+            const appointmentTime = timeSelect.value;
             const doctorId = doctorSelect.value;
             const appointmentType = appointmentTypeSelect.value;
             const reason = document.getElementById('reason').value;
@@ -624,6 +698,10 @@
                 checkDoctorAvailability();
             }, 500);
         @endif
+
+        // Initialize time slots based on current appointment type
+        const currentAppointmentType = appointmentTypeSelect.value;
+        updateTimeSlots(currentAppointmentType === 'emergency');
     });
 </script>
 @endsection

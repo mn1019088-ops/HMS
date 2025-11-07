@@ -18,6 +18,23 @@
         </div>
     </div>
 
+    <!-- Success/Error Messages -->
+    @if(session('success'))
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+            <i class="fas fa-check-circle me-2"></i>
+            {{ session('success') }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    @endif
+
+    @if(session('error'))
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            <i class="fas fa-exclamation-circle me-2"></i>
+            {{ session('error') }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    @endif
+
     <div class="row">
         <div class="col-lg-8">
             <!-- Appointment Details Card -->
@@ -37,11 +54,19 @@
                                 </tr>
                                 <tr>
                                     <th class="text-muted">Doctor:</th>
-                                    <td>Dr. {{ $appointment->doctor->name }}</td>
+                                    <td>
+                                        @if(isset($appointment->doctor->user))
+                                            Dr. {{ $appointment->doctor->user->first_name ?? '' }} {{ $appointment->doctor->user->last_name ?? '' }}
+                                        @elseif(isset($appointment->doctor->name))
+                                            Dr. {{ $appointment->doctor->name }}
+                                        @else
+                                            Doctor Not Found
+                                        @endif
+                                    </td>
                                 </tr>
                                 <tr>
                                     <th class="text-muted">Specialization:</th>
-                                    <td>{{ $appointment->doctor->specialization }}</td>
+                                    <td>{{ $appointment->doctor->specialization ?? 'General' }}</td>
                                 </tr>
                                 <tr>
                                     <th class="text-muted">Appointment Date:</th>
@@ -92,7 +117,7 @@
                                 </tr>
                                 <tr>
                                     <th class="text-muted">Fee:</th>
-                                    <td class="fw-bold text-success">₹{{ number_format($appointment->fee, 2) }}</td>
+                                    <td class="fw-bold text-success">₹{{ number_format($appointment->fee ?? 0, 2) }}</td>
                                 </tr>
                             </table>
                         </div>
@@ -103,7 +128,7 @@
                         <div class="col-12">
                             <h6 class="border-bottom pb-2">Appointment Timeline</h6>
                             <div class="timeline">
-                                <div class="timeline-item {{ $appointment->created_at ? 'active' : '' }}">
+                                <div class="timeline-item active">
                                     <div class="timeline-marker bg-primary"></div>
                                     <div class="timeline-content">
                                         <h6 class="mb-1">Appointment Created</h6>
@@ -116,6 +141,15 @@
                                     <div class="timeline-content">
                                         <h6 class="mb-1">Appointment Confirmed</h6>
                                         <small class="text-muted">{{ $appointment->confirmed_at->format('M d, Y h:i A') }}</small>
+                                    </div>
+                                </div>
+                                @endif
+                                @if($appointment->cancelled_at)
+                                <div class="timeline-item active">
+                                    <div class="timeline-marker bg-danger"></div>
+                                    <div class="timeline-content">
+                                        <h6 class="mb-1">Appointment Cancelled</h6>
+                                        <small class="text-muted">{{ $appointment->cancelled_at->format('M d, Y h:i A') }}</small>
                                     </div>
                                 </div>
                                 @endif
@@ -157,6 +191,22 @@
                         </div>
                     </div>
                     @endif
+
+                    <!-- Doctor's Notes (if any) -->
+                    @if($appointment->doctor_notes)
+                    <div class="row mt-4">
+                        <div class="col-12">
+                            <h6 class="border-bottom pb-2 text-primary">
+                                <i class="fas fa-stethoscope me-2"></i>Doctor's Notes
+                            </h6>
+                            <div class="card border-primary">
+                                <div class="card-body">
+                                    <p class="mb-0">{{ $appointment->doctor_notes }}</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    @endif
                 </div>
             </div>
         </div>
@@ -173,21 +223,29 @@
                     <div class="avatar-placeholder bg-primary rounded-circle mx-auto mb-3">
                         <i class="fas fa-user-md fa-2x text-white"></i>
                     </div>
-                    <h5>Dr. {{ $appointment->doctor->name }}</h5>
-                    <p class="text-muted mb-3">{{ $appointment->doctor->specialization }}</p>
+                    <h5>
+                        @if(isset($appointment->doctor->user))
+                            Dr. {{ $appointment->doctor->user->first_name ?? '' }} {{ $appointment->doctor->user->last_name ?? '' }}
+                        @elseif(isset($appointment->doctor->name))
+                            Dr. {{ $appointment->doctor->name }}
+                        @else
+                            Doctor Not Found
+                        @endif
+                    </h5>
+                    <p class="text-muted mb-3">{{ $appointment->doctor->specialization ?? 'General' }}</p>
                     
                     <div class="list-group list-group-flush text-start">
                         <div class="list-group-item px-0 d-flex justify-content-between align-items-center">
                             <small class="text-muted">Email</small>
-                            <div>{{ $appointment->doctor->email }}</div>
+                            <div class="small">{{ $appointment->doctor->email ?? 'N/A' }}</div>
                         </div>
                         <div class="list-group-item px-0 d-flex justify-content-between align-items-center">
                             <small class="text-muted">Phone</small>
-                            <div>{{ $appointment->doctor->phone ?? 'N/A' }}</div>
+                            <div class="small">{{ $appointment->doctor->phone ?? 'N/A' }}</div>
                         </div>
                         <div class="list-group-item px-0 d-flex justify-content-between align-items-center">
                             <small class="text-muted">Experience</small>
-                            <div>{{ $appointment->doctor->years_of_experience ?? 'N/A' }} years</div>
+                            <div class="small">{{ $appointment->doctor->years_of_experience ?? 'N/A' }} years</div>
                         </div>
                         <div class="list-group-item px-0 d-flex justify-content-between align-items-center">
                             <small class="text-muted">Status</small>
@@ -260,14 +318,57 @@
                             <small class="text-muted">Last Updated</small>
                             <small>{{ $appointment->updated_at->diffForHumans() }}</small>
                         </div>
+                        <div class="list-group-item px-0 d-flex justify-content-between align-items-center">
+                            <small class="text-muted">Created</small>
+                            <small>{{ $appointment->created_at->diffForHumans() }}</small>
+                        </div>
                     </div>
                 </div>
             </div>
+
+            <!-- Payment Information -->
+            @if($appointment->fee && $appointment->fee > 0)
+            <div class="card mt-4">
+                <div class="card-header bg-success text-white">
+                    <h6 class="card-title mb-0">
+                        <i class="fas fa-rupee-sign me-2"></i>Payment Information
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <div class="text-center mb-3">
+                        <h4 class="text-success">₹{{ number_format($appointment->fee, 2) }}</h4>
+                        <small class="text-muted">Appointment Fee</small>
+                    </div>
+                    <div class="list-group list-group-flush">
+                        <div class="list-group-item px-0 d-flex justify-content-between align-items-center">
+                            <small class="text-muted">Payment Status</small>
+                            <span class="badge bg-{{ $appointment->payment_status == 'paid' ? 'success' : 'warning' }}">
+                                {{ ucfirst($appointment->payment_status ?? 'pending') }}
+                            </span>
+                        </div>
+                        @if($appointment->payment_status == 'paid' && $appointment->paid_at)
+                        <div class="list-group-item px-0 d-flex justify-content-between align-items-center">
+                            <small class="text-muted">Paid On</small>
+                            <small>{{ $appointment->paid_at->format('M d, Y') }}</small>
+                        </div>
+                        @endif
+                    </div>
+                    @if($appointment->payment_status != 'paid' && in_array($appointment->status, ['scheduled', 'confirmed']))
+                    <div class="d-grid mt-3">
+                        <button class="btn btn-success btn-sm">
+                            <i class="fas fa-credit-card me-1"></i>Pay Now
+                        </button>
+                    </div>
+                    @endif
+                </div>
+            </div>
+            @endif
         </div>
     </div>
 </div>
 
 <!-- Cancel Appointment Modal -->
+@if(in_array($appointment->status, ['scheduled', 'confirmed']))
 <div class="modal fade" id="cancelAppointmentModal" tabindex="-1">
     <div class="modal-dialog">
         <div class="modal-content">
@@ -285,7 +386,15 @@
                 <div class="card bg-light">
                     <div class="card-body">
                         <strong>Appointment Details:</strong><br>
-                        Doctor: Dr. {{ $appointment->doctor->name }}<br>
+                        Doctor: 
+                        @if(isset($appointment->doctor->user))
+                            Dr. {{ $appointment->doctor->user->first_name ?? '' }} {{ $appointment->doctor->user->last_name ?? '' }}
+                        @elseif(isset($appointment->doctor->name))
+                            Dr. {{ $appointment->doctor->name }}
+                        @else
+                            Doctor Not Found
+                        @endif
+                        <br>
                         Date: {{ $appointment->appointment_date->format('M d, Y') }}<br>
                         Time: {{ \Carbon\Carbon::parse($appointment->appointment_time)->format('h:i A') }}
                     </div>
@@ -304,55 +413,59 @@
         </div>
     </div>
 </div>
+@endif
 
 <style>
-.avatar-placeholder {
-    width: 80px;
-    height: 80px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-.list-group-item {
-    border: none;
-    padding: 0.5rem 0;
-}
-.timeline {
-    position: relative;
-    padding-left: 2rem;
-}
-.timeline::before {
-    content: '';
-    position: absolute;
-    left: 7px;
-    top: 0;
-    bottom: 0;
-    width: 2px;
-    background: #e9ecef;
-}
-.timeline-item {
-    position: relative;
-    margin-bottom: 1.5rem;
-}
-.timeline-item.active .timeline-marker {
-    background: #28a745 !important;
-}
-.timeline-marker {
-    position: absolute;
-    left: -2rem;
-    top: 0.25rem;
-    width: 12px;
-    height: 12px;
-    border-radius: 50%;
-    background: #6c757d;
-}
-.timeline-content {
-    padding-bottom: 1rem;
-}
-@media print {
-    .btn, .modal, .card-header .float-end {
-        display: none !important;
+    .avatar-placeholder {
+        width: 80px;
+        height: 80px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
     }
-}
+    .list-group-item {
+        border: none;
+        padding: 0.5rem 0;
+    }
+    .timeline {
+        position: relative;
+        padding-left: 2rem;
+    }
+    .timeline::before {
+        content: '';
+        position: absolute;
+        left: 7px;
+        top: 0;
+        bottom: 0;
+        width: 2px;
+        background: #e9ecef;
+    }
+    .timeline-item {
+        position: relative;
+        margin-bottom: 1.5rem;
+    }
+    .timeline-item.active .timeline-marker {
+        background: #28a745 !important;
+    }
+    .timeline-marker {
+        position: absolute;
+        left: -2rem;
+        top: 0.25rem;
+        width: 12px;
+        height: 12px;
+        border-radius: 50%;
+        background: #6c757d;
+    }
+    .timeline-content {
+        padding-bottom: 1rem;
+    }
+    @media print {
+        .btn, .modal, .card-header .float-end {
+            display: none !important;
+        }
+        .card {
+            border: 1px solid #ddd !important;
+        }
+    }
 </style>
 @endsection

@@ -11,6 +11,36 @@
         </a>
     </div>
 
+    <!-- Success/Error Messages -->
+    @if(session('success'))
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+            <i class="fas fa-check-circle me-2"></i>
+            {{ session('success') }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    @endif
+
+    @if(session('error'))
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            <i class="fas fa-exclamation-circle me-2"></i>
+            {{ session('error') }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    @endif
+
+    @if ($errors->any())
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            <i class="fas fa-exclamation-triangle me-2"></i>
+            <strong>Please fix the following errors:</strong>
+            <ul class="mb-0 mt-1">
+                @foreach ($errors->all() as $error)
+                    <li>{{ $error }}</li>
+                @endforeach
+            </ul>
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    @endif
+
     <div class="row">
         <div class="col-lg-8">
             <div class="card">
@@ -31,7 +61,13 @@
                                     @foreach($doctors as $doctor)
                                     <option value="{{ $doctor->id }}" 
                                         {{ old('doctor_id', $appointment->doctor_id) == $doctor->id ? 'selected' : '' }}>
-                                        Dr. {{ $doctor->name }} - {{ $doctor->specialization }}
+                                        @if(isset($doctor->user))
+                                            Dr. {{ $doctor->user->first_name ?? '' }} {{ $doctor->user->last_name ?? '' }} - {{ $doctor->specialization ?? 'General' }}
+                                        @elseif(isset($doctor->name))
+                                            Dr. {{ $doctor->name }} - {{ $doctor->specialization ?? 'General' }}
+                                        @else
+                                            Doctor ID: {{ $doctor->id }}
+                                        @endif
                                     </option>
                                     @endforeach
                                 </select>
@@ -53,15 +89,29 @@
 
                             <div class="col-md-6">
                                 <label for="appointment_time" class="form-label">Appointment Time *</label>
-                                <input type="time" class="form-control @error('appointment_time') is-invalid @enderror" 
-                                       name="appointment_time" id="appointment_time" 
-                                       value="{{ old('appointment_time', $appointment->appointment_time) }}" required>
+                                <select class="form-select @error('appointment_time') is-invalid @enderror" 
+                                       name="appointment_time" id="appointment_time" required>
+                                    <option value="">Select Time</option>
+                                    @php
+                                        $timeSlots = [
+                                            '09:00', '09:30', '10:00', '10:30', '11:00', '11:30',
+                                            '12:00', '12:30', '14:00', '14:30', '15:00', '15:30',
+                                            '16:00', '16:30', '17:00'
+                                        ];
+                                        $currentTime = old('appointment_time', \Carbon\Carbon::parse($appointment->appointment_time)->format('H:i'));
+                                    @endphp
+                                    @foreach($timeSlots as $time)
+                                        <option value="{{ $time }}" {{ $currentTime == $time ? 'selected' : '' }}>
+                                            {{ \Carbon\Carbon::parse($time)->format('h:i A') }}
+                                        </option>
+                                    @endforeach
+                                </select>
                                 @error('appointment_time')
                                     <div class="invalid-feedback">{{ $message }}</div>
                                 @enderror
                             </div>
 
-                            <!-- FIXED: Appointment Type Field -->
+                            <!-- Fixed Appointment Type Field -->
                             <div class="col-md-6">
                                 <label for="appointment_type" class="form-label">Appointment Type *</label>
                                 <select class="form-select @error('appointment_type') is-invalid @enderror" 
@@ -73,7 +123,7 @@
                                     <option value="checkup" {{ old('appointment_type', $appointment->appointment_type) == 'checkup' ? 'selected' : '' }}>
                                         Checkup
                                     </option>
-                                    <option value="follow-up" {{ old('appointment_type', $appointment->appointment_type) == 'follow-up' ? 'selected' : '' }}>
+                                    <option value="followup" {{ old('appointment_type', $appointment->appointment_type) == 'followup' ? 'selected' : '' }}>
                                         Follow-up
                                     </option>
                                     <option value="emergency" {{ old('appointment_type', $appointment->appointment_type) == 'emergency' ? 'selected' : '' }}>
@@ -119,11 +169,18 @@
                             </button>
                             <a href="{{ route('patient.appointments.index') }}" class="btn btn-secondary">Cancel</a>
                             
-                            <!-- Delete Button -->
+                            <!-- Delete Button - Only show for scheduled appointments -->
+                            @if($appointment->status == 'scheduled')
                             <button type="button" class="btn btn-danger float-end" 
                                     data-bs-toggle="modal" data-bs-target="#deleteAppointmentModal">
                                 <i class="fas fa-trash me-1"></i>Delete Appointment
                             </button>
+                            @else
+                            <button type="button" class="btn btn-danger float-end" disabled
+                                    title="Cannot delete {{ $appointment->status }} appointments">
+                                <i class="fas fa-trash me-1"></i>Delete Appointment
+                            </button>
+                            @endif
                         </div>
                     </form>
                 </div>
@@ -139,12 +196,24 @@
                 <div class="card-body">
                     <div class="list-group list-group-flush">
                         <div class="list-group-item px-0">
+                            <small class="text-muted">Appointment ID</small>
+                            <div class="fw-bold">{{ $appointment->appointment_id ?? 'N/A' }}</div>
+                        </div>
+                        <div class="list-group-item px-0">
                             <small class="text-muted">Current Type</small>
                             <div class="fw-bold text-capitalize">{{ str_replace('-', ' ', $appointment->appointment_type) }}</div>
                         </div>
                         <div class="list-group-item px-0">
                             <small class="text-muted">Doctor</small>
-                            <div>Dr. {{ $appointment->doctor->name }}</div>
+                            <div>
+                                @if(isset($appointment->doctor->user))
+                                    Dr. {{ $appointment->doctor->user->first_name ?? '' }} {{ $appointment->doctor->user->last_name ?? '' }}
+                                @elseif(isset($appointment->doctor->name))
+                                    Dr. {{ $appointment->doctor->name }}
+                                @else
+                                    Doctor Not Found
+                                @endif
+                            </div>
                         </div>
                         <div class="list-group-item px-0">
                             <small class="text-muted">Date & Time</small>
@@ -167,6 +236,34 @@
                                 </span>
                             </div>
                         </div>
+                        @if($appointment->fee)
+                        <div class="list-group-item px-0">
+                            <small class="text-muted">Fee</small>
+                            <div class="text-success fw-bold">₹{{ number_format($appointment->fee, 2) }}</div>
+                        </div>
+                        @endif
+                    </div>
+                </div>
+            </div>
+
+            <!-- Important Notes -->
+            <div class="card">
+                <div class="card-header bg-light">
+                    <h6 class="card-title mb-0">
+                        <i class="fas fa-info-circle me-2"></i>Important Information
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-info">
+                        <small>
+                            <strong>Please Note:</strong>
+                            <ul class="mb-0 mt-2">
+                                <li>Appointments can only be edited if status is "Scheduled"</li>
+                                <li>Emergency appointments have different time restrictions</li>
+                                <li>Changes are subject to doctor's availability</li>
+                                <li>You will receive a confirmation email after update</li>
+                            </ul>
+                        </small>
                     </div>
                 </div>
             </div>
@@ -175,6 +272,7 @@
 </div>
 
 <!-- Delete Confirmation Modal -->
+@if($appointment->status == 'scheduled')
 <div class="modal fade" id="deleteAppointmentModal" tabindex="-1">
     <div class="modal-dialog">
         <div class="modal-content">
@@ -192,7 +290,15 @@
                 <div class="card bg-light">
                     <div class="card-body">
                         <strong>Appointment Details:</strong><br>
-                        Doctor: Dr. {{ $appointment->doctor->name }}<br>
+                        Doctor: 
+                        @if(isset($appointment->doctor->user))
+                            Dr. {{ $appointment->doctor->user->first_name ?? '' }} {{ $appointment->doctor->user->last_name ?? '' }}
+                        @elseif(isset($appointment->doctor->name))
+                            Dr. {{ $appointment->doctor->name }}
+                        @else
+                            Doctor Not Found
+                        @endif
+                        <br>
                         Date: {{ $appointment->appointment_date->format('M d, Y') }}<br>
                         Time: {{ \Carbon\Carbon::parse($appointment->appointment_time)->format('h:i A') }}<br>
                         Type: {{ ucfirst($appointment->appointment_type) }}
@@ -212,11 +318,15 @@
         </div>
     </div>
 </div>
+@endif
 
 <style>
     .list-group-item {
         border: none;
         padding: 0.5rem 0;
+    }
+    .card {
+        box-shadow: 0 0.15rem 1.75rem 0 rgba(58, 59, 69, 0.15);
     }
 </style>
 @endsection
@@ -227,12 +337,18 @@
         const form = document.getElementById('editAppointmentForm');
         const appointmentTypeSelect = document.getElementById('appointment_type');
         const dateInput = document.getElementById('appointment_date');
-        const timeInput = document.getElementById('appointment_time');
+        const timeSelect = document.getElementById('appointment_time');
+        const updateBtn = document.getElementById('updateBtn');
 
         // Set minimum date to tomorrow
         const tomorrow = new Date();
         tomorrow.setDate(tomorrow.getDate() + 1);
         dateInput.min = tomorrow.toISOString().split('T')[0];
+
+        // Set maximum date to 3 months from now
+        const maxDate = new Date();
+        maxDate.setMonth(maxDate.getMonth() + 3);
+        dateInput.max = maxDate.toISOString().split('T')[0];
 
         // Appointment type specific validations
         appointmentTypeSelect.addEventListener('change', function() {
@@ -242,9 +358,15 @@
                 // Allow same-day booking for emergencies
                 const today = new Date().toISOString().split('T')[0];
                 dateInput.min = today;
+                
+                // Show emergency time slots
+                updateTimeSlots(true);
             } else {
                 // Regular appointments require at least 24 hours notice
                 dateInput.min = tomorrow.toISOString().split('T')[0];
+                
+                // Show regular time slots
+                updateTimeSlots(false);
             }
         });
 
@@ -260,43 +382,61 @@
                 this.value = '';
                 return;
             }
+            
+            // Update available time slots based on selected date
+            updateTimeSlots(appointmentType === 'emergency');
         });
 
-        // Set business hours with exceptions for emergencies
-        timeInput.addEventListener('change', function() {
-            const time = this.value;
-            const appointmentType = appointmentTypeSelect.value;
+        // Function to update time slots
+        function updateTimeSlots(isEmergency) {
+            const currentTime = timeSelect.value;
+            timeSelect.innerHTML = '<option value="">Select Time</option>';
             
-            if (time) {
-                const [hours, minutes] = time.split(':').map(Number);
-                
-                // Extended hours for emergency appointments
-                if (appointmentType === 'emergency') {
-                    if (hours < 8 || hours > 20) {
-                        alert('For emergency appointments, please select a time between 8:00 AM and 8:00 PM');
-                        this.value = '';
-                        return;
-                    }
-                } else {
-                    // Regular business hours for other appointments
-                    if (hours < 9 || hours > 17 || (hours === 17 && minutes > 0)) {
-                        alert('Please select a time between 9:00 AM and 5:00 PM');
-                        this.value = '';
-                        return;
-                    }
-                }
+            let timeSlots;
+            
+            if (isEmergency) {
+                // Emergency time slots (extended hours)
+                timeSlots = [
+                    '08:00', '08:30', '09:00', '09:30', '10:00', '10:30', '11:00', '11:30',
+                    '12:00', '12:30', '13:00', '13:30', '14:00', '14:30', '15:00', '15:30',
+                    '16:00', '16:30', '17:00', '17:30', '18:00', '18:30', '19:00'
+                ];
+            } else {
+                // Regular time slots (business hours)
+                timeSlots = [
+                    '09:00', '09:30', '10:00', '10:30', '11:00', '11:30',
+                    '12:00', '12:30', '14:00', '14:30', '15:00', '15:30',
+                    '16:00', '16:30', '17:00'
+                ];
             }
-        });
+            
+            timeSlots.forEach(time => {
+                const option = document.createElement('option');
+                option.value = time;
+                option.textContent = new Date('2000-01-01T' + time).toLocaleTimeString('en-US', { 
+                    hour: 'numeric', 
+                    minute: '2-digit', 
+                    hour12: true 
+                });
+                
+                if (time === currentTime) {
+                    option.selected = true;
+                }
+                
+                timeSelect.appendChild(option);
+            });
+        }
 
         // Form validation
         form.addEventListener('submit', function(e) {
             const appointmentDate = dateInput.value;
-            const appointmentTime = timeInput.value;
+            const appointmentTime = timeSelect.value;
             const doctorId = document.getElementById('doctor_id').value;
             const appointmentType = appointmentTypeSelect.value;
             const reason = document.getElementById('reason').value;
             
-            if (!appointmentDate || !appointmentTime || !doctorId || !appointmentType || !reason) {
+            // Basic validation
+            if (!appointmentDate || !appointmentTime || !doctorId || !appointmentType || !reason.trim()) {
                 e.preventDefault();
                 alert('Please fill in all required fields.');
                 return false;
@@ -305,17 +445,30 @@
             const selectedDateTime = new Date(appointmentDate + 'T' + appointmentTime);
             const now = new Date();
             
-            if (selectedDateTime <= now) {
+            // Allow same-day for emergencies, otherwise require future date
+            if (appointmentType !== 'emergency' && selectedDateTime <= now) {
                 e.preventDefault();
                 alert('Please select a future date and time for your appointment.');
                 return false;
             }
 
+            // Emergency appointments can be same-day but not in the past
+            if (appointmentType === 'emergency' && selectedDateTime < now) {
+                e.preventDefault();
+                alert('Please select a current or future time for emergency appointments.');
+                return false;
+            }
+
             // Show loading state
-            const updateBtn = document.getElementById('updateBtn');
             updateBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Updating...';
             updateBtn.disabled = true;
+            
+            return true;
         });
+
+        // Initialize time slots based on current appointment type
+        const currentAppointmentType = appointmentTypeSelect.value;
+        updateTimeSlots(currentAppointmentType === 'emergency');
     });
 </script>
 @endsection
